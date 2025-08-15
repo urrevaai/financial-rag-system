@@ -15,4 +15,3 @@ torch
 transformers
 plotly
 pysqlite3-binary
-
