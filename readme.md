@@ -1,7 +1,7 @@
 # 🚀 Apple based Financial Analysis RAG System
 
 ## https://financial-rag-system.streamlit.app/
-`![Financial RAG System Preview](preview.png)`
+![Financial RAG System Preview](./preview.png)
 
 This project is a sophisticated Retrieval-Augmented Generation (RAG) system designed to provide financial insights by integrating multiple data sources. It features a user-friendly Streamlit application that can answer questions about a company's financial reports, analyze real-time market data, and assess risks.
 
@@ -125,4 +125,5 @@ This repository includes built-in fixes for common deployment issues on Streamli
 * **Library Compatibility**: The `requirements.txt` file pins specific versions of `chromadb` and `langchain-community` to ensure they work together without `AttributeError` issues.
 
 ---
+
 
