@@ -5,7 +5,6 @@ import json
 import os
 from bs4 import BeautifulSoup
 
-# --- Configuration ---
 TICKER = "AAPL"
 COMPANY_CIK = "0000320193"
 YOUR_EMAIL = "your_email@example.com"
@@ -23,7 +22,6 @@ def fetch_news_headlines():
         response.raise_for_status()
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # This selector targets the headlines in the main news feed of Yahoo Finance
         headlines = soup.find_all('h3', class_='Mb(5px)')
         for headline in headlines:
             if headline.a:
@@ -74,8 +72,6 @@ def extract_risk_factors(full_text):
     """Extracts the 'Risk Factors' section (Item 1A) from the 10-K filing."""
     print("Extracting 'Risk Factors' section (Item 1A)...")
     try:
-        # Use regex to find Item 1A. This is a simplified pattern and might need adjustment.
-        # It looks for "Item 1A." and captures text until it finds "Item 1B."
         pattern = re.compile(r'Item\s+1A\.\s+Risk\s+Factors\s*\.?(.*?)Item\s+1B\.', re.DOTALL | re.IGNORECASE)
         match = pattern.search(full_text)
         
@@ -86,7 +82,6 @@ def extract_risk_factors(full_text):
             print(f"Successfully extracted and saved risk factors to {OUTPUT_RISK_FACTORS_PATH}")
         else:
             print("Could not find the 'Risk Factors' section using the primary pattern.")
-            # Fallback pattern for documents that might not have the exact same structure
             pattern_fallback = re.compile(r'RISK\s+FACTORS(.*?)(?=\n\s*\n\s*Item|\Z)', re.DOTALL | re.IGNORECASE)
             match_fallback = pattern_fallback.search(full_text)
             if match_fallback:
@@ -105,8 +100,8 @@ if __name__ == "__main__":
     full_text, filing_date = fetch_sec_filing()
     if full_text:
         extract_risk_factors(full_text)
-        # Store filing_date for the vector store script to use
         with open("filing_metadata.json", "w") as f:
             json.dump({"filing_date": filing_date}, f)
         print(f"Filing date ({filing_date}) saved for metadata.")
+
     print("--- Data Ingestion Complete ---")
