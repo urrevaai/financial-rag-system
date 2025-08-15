@@ -1,58 +1,33 @@
-# --- SQLITE3 PATCH ---
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-# --- END OF PATCH ---
-
 import streamlit as st
 import os
 import time
 from dotenv import load_dotenv
-
-# --- SETUP FUNCTION ---
-@st.cache_resource
-def setup_application():
-    """
-    Sets up the application by building the vector store from local files
-    if it doesn't already exist.
-    """
-    if not os.path.exists("./chroma_db"):
-        st.header("First-time Setup: Building Vector Database...")
-        st.info("This is a one-time process and may take a few minutes.")
-        
-        with st.container():
-            st.write("Building vector store from repository files...")
-            from vector_store import build_vector_store
-            build_vector_store()
-            st.write("✅ Vector store built successfully.")
-            
-        st.success("Setup complete! The application is ready.")
-        time.sleep(3)
-        st.rerun()
-    return True
-
-# --- Run Setup ---
-setup_application()
-
-# --- Main Application Imports (after setup) ---
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from tools import analyze_stock_trend, summarize_risk_factors, assess_news_sentiment
 
-# --- PAGE CONFIG & STYLING ---
-st.set_page_config(page_title="Financial Insights RAG System", page_icon="🚀", layout="wide")
+# --- INITIALIZATION & PAGE CONFIG ---
+load_dotenv()
+st.set_page_config(
+    page_title="Financial Insights RAG System",
+    page_icon="🚀",
+    layout="wide",
+)
+
+# --- Custom CSS ---
 st.markdown("""
 <style>
-    .main-header { font-size: 2.5rem; font-weight: bold; color: #FFFFFF; text-align: center; }
+    .main-header {
+        font-size: 2.5rem; font-weight: bold; color: #FFFFFF; text-align: center;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # --- API KEY CHECK AND CONSTANTS ---
-load_dotenv()
 if "GROQ_API_KEY" not in os.environ:
-    st.error("GROQ_API_KEY is not set. Please add it to your .env file or Streamlit secrets.")
+    st.error("GROQ_API_KEY is not set. Please add it to your .env file.")
     st.stop()
 VECTOR_STORE_PATH = "./chroma_db"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
@@ -60,6 +35,8 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 # --- CACHED FUNCTIONS for loading models ---
 @st.cache_resource
 def load_models():
+    if not os.path.exists(VECTOR_STORE_PATH):
+        return None
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     vector_store = Chroma(persist_directory=VECTOR_STORE_PATH, embedding_function=embeddings)
     return vector_store
@@ -67,10 +44,12 @@ def load_models():
 @st.cache_resource
 def load_llm_chain():
     llm = ChatGroq(model_name="llama3-8b-8192", temperature=0.7)
-    prompt_template = ChatPromptTemplate.from_messages([
-        ("system", "You are a financial analyst AI..."),
-        ("human", "CONTEXT:\n{context}\n\nADDITIONAL ANALYSIS:\n{analysis}\n\nQUESTION:\n{question}"),
-    ])
+    prompt_template = ChatPromptTemplate.from_messages(
+        [
+            ("system", "You are a financial analyst AI... (prompt text)"),
+            ("human", "CONTEXT:\n{context}\n\nADDITIONAL ANALYSIS:\n{analysis}\n\nQUESTION:\n{question}"),
+        ]
+    )
     return prompt_template | llm
 
 # --- UI TABS ---
@@ -142,6 +121,7 @@ def market_analysis_tab():
             cols[2].metric(label="50-Day MA", value=f"${float(metrics['50_day_ma']):.2f}")
             cols[3].metric(label="200-Day MA", value=f"${float(metrics['200_day_ma']):.2f}")
             
+            # --- GRAPH CODE REMOVED ---
             st.subheader("Data Preview (Last 10 Days)")
             st.dataframe(chart_data.tail(10))
             
@@ -150,11 +130,15 @@ def market_analysis_tab():
 
 # --- MAIN APP ---
 def main():
-    st.markdown('<h1 class="main-header">🚀 Financial Insights RAG System</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🚀Apple based Financial Insights RAG System</h1>', unsafe_allow_html=True)
     
     vector_store = load_models()
     llm_chain = load_llm_chain()
     
+    if vector_store is None:
+        st.error("Vector store not found. Please run ingest_data.py and vector_store.py first.")
+        return
+
     tab1, tab2 = st.tabs(["💬 Financial Q&A", "📈 Live Market Analysis"])
     
     with tab1:
