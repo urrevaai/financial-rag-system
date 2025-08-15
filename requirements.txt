@@ -6,10 +6,11 @@ python-dotenv
 yfinance
 requests
 beautifulsoup4
-chromadb
+chromadb==0.4.15
 sentence-transformers
 pandas
 scikit-learn
 torch
 transformers
 plotly
+pysqlite3-binary
