@@ -1,15 +1,19 @@
+# --- SQLITE3 PATCH ---
 __import__('pysqlite3')
 import sys
 sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+# --- END OF PATCH ---
 
 import streamlit as st
 import os
 import time
 from dotenv import load_dotenv
+
+# --- SETUP FUNCTION ---
 @st.cache_resource
 def setup_application():
     """
-    Sets up the application by downloading data and building the vector store
+    Sets up the application by building the vector store from local files
     if it doesn't already exist.
     """
     if not os.path.exists("./chroma_db"):
@@ -17,21 +21,7 @@ def setup_application():
         st.info("This is a one-time process and may take a few minutes.")
         
         with st.container():
-            st.write("Step 1/2: Downloading SEC filings and extracting data...")
-            from ingest_data import fetch_sec_filing, extract_risk_factors
-            import json
-            
-            full_text, filing_date = fetch_sec_filing()
-            if full_text:
-                extract_risk_factors(full_text)
-                with open("filing_metadata.json", "w") as f:
-                    json.dump({"filing_date": filing_date}, f)
-                st.write("✅ Data ingestion complete.")
-            else:
-                st.error("Failed to ingest data. Please check the logs.")
-                return False
-
-            st.write("Step 2/2: Building vector store... (This is the slow part)")
+            st.write("Building vector store from repository files...")
             from vector_store import build_vector_store
             build_vector_store()
             st.write("✅ Vector store built successfully.")
@@ -41,14 +31,17 @@ def setup_application():
         st.rerun()
     return True
 
+# --- Run Setup ---
 setup_application()
 
+# --- Main Application Imports (after setup) ---
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from tools import analyze_stock_trend, summarize_risk_factors, assess_news_sentiment
 
+# --- PAGE CONFIG & STYLING ---
 st.set_page_config(page_title="Financial Insights RAG System", page_icon="🚀", layout="wide")
 st.markdown("""
 <style>
@@ -56,6 +49,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- API KEY CHECK AND CONSTANTS ---
 load_dotenv()
 if "GROQ_API_KEY" not in os.environ:
     st.error("GROQ_API_KEY is not set. Please add it to your .env file or Streamlit secrets.")
@@ -63,6 +57,7 @@ if "GROQ_API_KEY" not in os.environ:
 VECTOR_STORE_PATH = "./chroma_db"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
+# --- CACHED FUNCTIONS for loading models ---
 @st.cache_resource
 def load_models():
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
@@ -78,6 +73,7 @@ def load_llm_chain():
     ])
     return prompt_template | llm
 
+# --- UI TABS ---
 def financial_qa_tab(vector_store, llm_chain):
     st.header("💬 Financial Query (RAG)")
     st.write("Ask questions about the company's financial reports (10-K). The AI will retrieve relevant context to form an answer.")
@@ -152,8 +148,9 @@ def market_analysis_tab():
         else:
             st.error("Failed to fetch market data. The API may be temporarily unavailable.")
 
+# --- MAIN APP ---
 def main():
-    st.markdown('<h1 class="main-header">🚀 Apple based Financial Insights RAG System</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-header">🚀 Financial Insights RAG System</h1>', unsafe_allow_html=True)
     
     vector_store = load_models()
     llm_chain = load_llm_chain()
