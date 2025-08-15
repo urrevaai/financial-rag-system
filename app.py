@@ -7,8 +7,6 @@ import os
 import time
 from dotenv import load_dotenv
 
-# --- SETUP FUNCTION ---
-# This function will run ONLY ONCE when the app is first deployed.
 @st.cache_resource
 def setup_application():
     """
@@ -20,7 +18,6 @@ def setup_application():
         st.info("This is a one-time process and may take a few minutes.")
         
         with st.container():
-            # 1. Ingest Data
             st.write("Step 1/2: Ingesting data...")
             from ingest_data import fetch_sec_filing, extract_risk_factors
             import json
@@ -35,30 +32,24 @@ def setup_application():
                 st.error("Failed to ingest data. Please check the logs.")
                 return False
 
-            # 2. Build Vector Store
             st.write("Step 2/2: Building vector store... (This is the slow part)")
             from vector_store import build_vector_store
             build_vector_store()
             st.write("✅ Vector store built successfully.")
             
         st.success("Setup complete! The application is ready.")
-        # A short delay to allow the user to read the message before reloading
         time.sleep(3)
-        st.rerun() # Rerun the app to load the main interface
+        st.rerun()
     return True
 
-# --- Run Setup ---
-# This will be the first thing to run in the script.
 setup_application()
 
-# --- Main Application Imports (loaded after setup is confirmed) ---
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from tools import analyze_stock_trend, summarize_risk_factors, assess_news_sentiment
 
-# --- PAGE CONFIG & STYLING ---
 st.set_page_config(page_title="Financial Insights RAG System", page_icon="🚀", layout="wide")
 st.markdown("""
 <style>
@@ -66,7 +57,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- API KEY CHECK AND CONSTANTS ---
 load_dotenv()
 if "GROQ_API_KEY" not in os.environ:
     st.error("GROQ_API_KEY is not set. Please add it to your .env file or Streamlit secrets.")
@@ -74,10 +64,8 @@ if "GROQ_API_KEY" not in os.environ:
 VECTOR_STORE_PATH = "./chroma_db"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
-# --- CACHED FUNCTIONS for loading models ---
 @st.cache_resource
 def load_models():
-    # This function now assumes the path exists because setup_application() ensures it.
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     vector_store = Chroma(persist_directory=VECTOR_STORE_PATH, embedding_function=embeddings)
     return vector_store
@@ -91,7 +79,6 @@ def load_llm_chain():
     ])
     return prompt_template | llm
 
-# --- UI TABS ---
 def financial_qa_tab(vector_store, llm_chain):
     st.header("💬 Financial Query (RAG)")
     st.write("Ask questions about the company's financial reports (10-K). The AI will retrieve relevant context to form an answer.")
@@ -166,7 +153,6 @@ def market_analysis_tab():
         else:
             st.error("Failed to fetch market data. The API may be temporarily unavailable.")
 
-# --- MAIN APP ---
 def main():
     st.markdown('<h1 class="main-header">🚀Apple based Financial Insights RAG System</h1>', unsafe_allow_html=True)
     
@@ -183,4 +169,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
