@@ -1,0 +1,17 @@
+# Python virtual environment
+venv/
+.venv/
+
+# IDE and editor files
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Ignore the large, locally-generated vector database
+chroma_db/

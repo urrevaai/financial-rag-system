@@ -1,0 +1,15 @@
+streamlit
+langchain
+langchain-community
+langchain-huggingface
+yfinance
+requests
+beautifulsoup4
+chromadb
+sentence-transformers
+pandas
+scikit-learn
+torch
+transformers
+huggingface_hub
+plotly
