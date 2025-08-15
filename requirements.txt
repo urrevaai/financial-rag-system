@@ -1,7 +1,8 @@
 streamlit
 langchain
 langchain-community
-langchain-huggingface
+langchain-groq
+python-dotenv
 yfinance
 requests
 beautifulsoup4
@@ -11,5 +12,4 @@ pandas
 scikit-learn
 torch
 transformers
-huggingface_hub
 plotly
