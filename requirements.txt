@@ -1,6 +1,6 @@
 streamlit
 langchain
-langchain-community
+langchain-community==0.0.31
 langchain-groq
 python-dotenv
 yfinance
