@@ -2,32 +2,70 @@ import streamlit as st
 import os
 import time
 from dotenv import load_dotenv
+
+# --- SETUP FUNCTION ---
+# This function will run ONLY ONCE when the app is first deployed.
+@st.cache_resource
+def setup_application():
+    """
+    Sets up the application by running the data ingestion and vector store
+    build scripts if the database doesn't already exist.
+    """
+    if not os.path.exists("./chroma_db"):
+        st.header("First-time Setup: Building Vector Database...")
+        st.info("This is a one-time process and may take a few minutes.")
+        
+        with st.container():
+            # 1. Ingest Data
+            st.write("Step 1/2: Ingesting data...")
+            from ingest_data import fetch_sec_filing, extract_risk_factors
+            import json
+            
+            full_text, filing_date = fetch_sec_filing()
+            if full_text:
+                extract_risk_factors(full_text)
+                with open("filing_metadata.json", "w") as f:
+                    json.dump({"filing_date": filing_date}, f)
+                st.write("✅ Data ingestion complete.")
+            else:
+                st.error("Failed to ingest data. Please check the logs.")
+                return False
+
+            # 2. Build Vector Store
+            st.write("Step 2/2: Building vector store... (This is the slow part)")
+            from vector_store import build_vector_store
+            build_vector_store()
+            st.write("✅ Vector store built successfully.")
+            
+        st.success("Setup complete! The application is ready.")
+        # A short delay to allow the user to read the message before reloading
+        time.sleep(3)
+        st.rerun() # Rerun the app to load the main interface
+    return True
+
+# --- Run Setup ---
+# This will be the first thing to run in the script.
+setup_application()
+
+# --- Main Application Imports (loaded after setup is confirmed) ---
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from tools import analyze_stock_trend, summarize_risk_factors, assess_news_sentiment
 
-# --- INITIALIZATION & PAGE CONFIG ---
-load_dotenv()
-st.set_page_config(
-    page_title="Financial Insights RAG System",
-    page_icon="🚀",
-    layout="wide",
-)
-
-# --- Custom CSS ---
+# --- PAGE CONFIG & STYLING ---
+st.set_page_config(page_title="Financial Insights RAG System", page_icon="🚀", layout="wide")
 st.markdown("""
 <style>
-    .main-header {
-        font-size: 2.5rem; font-weight: bold; color: #FFFFFF; text-align: center;
-    }
+    .main-header { font-size: 2.5rem; font-weight: bold; color: #FFFFFF; text-align: center; }
 </style>
 """, unsafe_allow_html=True)
 
 # --- API KEY CHECK AND CONSTANTS ---
+load_dotenv()
 if "GROQ_API_KEY" not in os.environ:
-    st.error("GROQ_API_KEY is not set. Please add it to your .env file.")
+    st.error("GROQ_API_KEY is not set. Please add it to your .env file or Streamlit secrets.")
     st.stop()
 VECTOR_STORE_PATH = "./chroma_db"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
@@ -35,8 +73,7 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 # --- CACHED FUNCTIONS for loading models ---
 @st.cache_resource
 def load_models():
-    if not os.path.exists(VECTOR_STORE_PATH):
-        return None
+    # This function now assumes the path exists because setup_application() ensures it.
     embeddings = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL)
     vector_store = Chroma(persist_directory=VECTOR_STORE_PATH, embedding_function=embeddings)
     return vector_store
@@ -44,12 +81,10 @@ def load_models():
 @st.cache_resource
 def load_llm_chain():
     llm = ChatGroq(model_name="llama3-8b-8192", temperature=0.7)
-    prompt_template = ChatPromptTemplate.from_messages(
-        [
-            ("system", "You are a financial analyst AI... (prompt text)"),
-            ("human", "CONTEXT:\n{context}\n\nADDITIONAL ANALYSIS:\n{analysis}\n\nQUESTION:\n{question}"),
-        ]
-    )
+    prompt_template = ChatPromptTemplate.from_messages([
+        ("system", "You are a financial analyst AI... (prompt text)"),
+        ("human", "CONTEXT:\n{context}\n\nADDITIONAL ANALYSIS:\n{analysis}\n\nQUESTION:\n{question}"),
+    ])
     return prompt_template | llm
 
 # --- UI TABS ---
@@ -121,7 +156,6 @@ def market_analysis_tab():
             cols[2].metric(label="50-Day MA", value=f"${float(metrics['50_day_ma']):.2f}")
             cols[3].metric(label="200-Day MA", value=f"${float(metrics['200_day_ma']):.2f}")
             
-            # --- GRAPH CODE REMOVED ---
             st.subheader("Data Preview (Last 10 Days)")
             st.dataframe(chart_data.tail(10))
             
@@ -135,10 +169,6 @@ def main():
     vector_store = load_models()
     llm_chain = load_llm_chain()
     
-    if vector_store is None:
-        st.error("Vector store not found. Please run ingest_data.py and vector_store.py first.")
-        return
-
     tab1, tab2 = st.tabs(["💬 Financial Q&A", "📈 Live Market Analysis"])
     
     with tab1:
