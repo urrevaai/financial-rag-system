@@ -1,5 +1,6 @@
 streamlit
 langchain
+langchain_huggingface
 langchain-community==0.0.31
 langchain-groq
 python-dotenv
@@ -14,3 +15,4 @@ torch
 transformers
 plotly
 pysqlite3-binary
+
