@@ -4,7 +4,6 @@ import yfinance as yf
 from transformers import pipeline
 from ingest_data import fetch_news_headlines
 
-# --- Configuration ---
 RISK_FACTORS_PATH = "risk_factors.txt"
 TICKER = "AAPL"
 
@@ -19,7 +18,6 @@ def analyze_stock_trend():
         if stock_data.empty:
             return None
 
-        # --- Calculations ---
         stock_data['50_MA'] = stock_data['Close'].rolling(window=50).mean()
         stock_data['200_MA'] = stock_data['Close'].rolling(window=200).mean()
         
@@ -36,7 +34,6 @@ def analyze_stock_trend():
             "200_day_ma": latest_data['200_MA'],
         }
         
-        # Return both the metrics and the full DataFrame for charting
         return {
             "metrics": metrics,
             "chart_data": stock_data
@@ -46,7 +43,6 @@ def analyze_stock_trend():
         print(f"Error in analyze_stock_trend: {e}")
         return None
 
-# --- Other tools remain the same ---
 def summarize_risk_factors():
     """Reads and summarizes the extracted 'Risk Factors' section from the 10-K."""
     try:
@@ -66,4 +62,5 @@ def assess_news_sentiment():
     sentiments = sentiment_pipeline(headlines[:10])
     positive_count = sum(1 for s in sentiments if s['label'] == 'POSITIVE')
     negative_count = len(sentiments) - positive_count
+
     return f"**Recent News Sentiment:**\n- Positive: {positive_count}/10\n- Negative: {negative_count}/10"
